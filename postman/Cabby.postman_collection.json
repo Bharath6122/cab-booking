@@ -1,0 +1,128 @@
+{
+  "info": {
+    "_postman_id": "d430c04d-0d2f-441d-94f1-5a67aa12bd4b",
+    "name": "Cabby Cab Booking API",
+    "description": "Smoke tests for customer and administrator APIs. Set apiUrl and create an admin in the API environment before running admin requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "apiUrl", "value": "http://localhost:8080/api" },
+    { "key": "customerEmail", "value": "rider@example.com" },
+    { "key": "customerPassword", "value": "local-demo-password-123" },
+    { "key": "customerName", "value": "Jamie Rider" },
+    { "key": "customerPhone", "value": "+91 90000 11111" },
+    { "key": "adminEmail", "value": "admin@example.com" },
+    { "key": "adminPassword", "value": "" },
+    { "key": "userToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "cabId", "value": "1" },
+    { "key": "bookingId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"fullName\":\"{{customerName}}\",\"email\":\"{{customerEmail}}\",\"password\":\"{{customerPassword}}\",\"phone\":\"{{customerPhone}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{apiUrl}}/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Registration returns 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('Response does not expose a password', () => pm.expect(body.user).not.to.have.property('password'));", "if (body.token) pm.collectionVariables.set('userToken', body.token);"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Login customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{customerEmail}}\",\"password\":\"{{customerPassword}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{apiUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Login returns 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "if (body.token) pm.collectionVariables.set('userToken', body.token);"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Invalid login returns 401",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{customerEmail}}\",\"password\":\"wrong-password\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{apiUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Invalid credentials return 401', () => pm.response.to.have.status(401));"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Get current profile",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }], "url": "{{apiUrl}}/auth/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Profile is returned', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }]
+        }
+      ]
+    },
+    {
+      "name": "Public rides and customer bookings",
+      "item": [
+        {
+          "name": "List available cabs",
+          "request": { "method": "GET", "url": "{{apiUrl}}/cabs/available" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Available cabs return 200', () => pm.response.to.have.status(200));", "const cabs = pm.response.json();", "if (cabs.length) pm.collectionVariables.set('cabId', cabs[0].id);"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Get server fare estimate",
+          "request": { "method": "GET", "url": "{{apiUrl}}/fares/estimate?cabId={{cabId}}&distanceKm=12.5" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Fare quote is returned', () => pm.response.to.have.status(200));", "pm.test('Quote includes server fare', () => pm.expect(pm.response.json()).to.have.property('estimatedFare'));"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Create booking",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"cabId\":{{cabId}},\"pickupLocation\":\"Central Station\",\"dropLocation\":\"City Museum\",\"distanceKm\":12.5,\"bookingDateTime\":\"2030-06-15T10:30:00\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{apiUrl}}/bookings"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Booking is created', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "if (body.id) pm.collectionVariables.set('bookingId', body.id);", "pm.test('Server returns a fare and reference', () => { pm.expect(body.estimatedFare).to.be.a('number'); pm.expect(body.bookingReference).to.be.a('string'); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "List my bookings",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }], "url": "{{apiUrl}}/bookings/my" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Customer history returns 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Cancel my booking",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }], "url": "{{apiUrl}}/bookings/{{bookingId}}/cancel" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Eligible booking is cancelled', () => pm.response.to.have.status(200));", "pm.test('Booking status is cancelled', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"], "type": "text/javascript" } }]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Login administrator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{apiUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Admin login returns 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "if (body.token) pm.collectionVariables.set('adminToken', body.token);", "pm.test('Account has admin role', () => pm.expect(body.user.role).to.eql('ROLE_ADMIN'));"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Admin dashboard",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{apiUrl}}/admin/dashboard/stats" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Admin dashboard returns 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "List all bookings",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{apiUrl}}/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Admin can read all bookings', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "Customer is forbidden from admin dashboard",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }], "url": "{{apiUrl}}/admin/dashboard/stats" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Customer gets 403', () => pm.response.to.have.status(403));"], "type": "text/javascript" } }]
+        }
+      ]
+    }
+  ]
+}
