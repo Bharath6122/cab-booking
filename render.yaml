@@ -20,7 +20,7 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: CORS_ALLOWED_ORIGIN
-        value: https://cab-booking-web.onrender.com
+        value: https://cab-booking-web-161h.onrender.com
       - key: BASE_FARE
         value: "100"
 
@@ -31,7 +31,7 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        value: https://cab-booking-api.onrender.com/api
+        value: https://cab-booking-api-mrdx.onrender.com/api
     routes:
       - type: rewrite
         source: /*
