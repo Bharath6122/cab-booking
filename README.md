@@ -41,7 +41,7 @@ cab-booking/
 ## Run locally with Docker
 
 1. Install Docker Desktop and start its Linux container engine.
-2. Copy `.env.example` to `.env`. Replace `JWT_SECRET` with a random secret of at least 32 bytes and set a strong `ADMIN_PASSWORD` of at least 12 characters. Keep `.env` private.
+2. Copy `.env.example` to `.env`. Set unique strong values for `SPRING_DATASOURCE_PASSWORD` and `MYSQL_ROOT_PASSWORD`, use a random `JWT_SECRET` of at least 32 bytes, and optionally set a strong `ADMIN_PASSWORD` of at least 12 characters with `ADMIN_EMAIL`. Keep `.env` private.
 3. From this folder, run:
 
    ```powershell
@@ -51,7 +51,7 @@ cab-booking/
 4. Open [http://localhost:8081](http://localhost:8081). MySQL is initialized by Flyway; four sample cabs and drivers are created on first start. The admin account is created only when both `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set.
 5. To stop the services, run `docker compose down`. To preserve booking data, do **not** remove the `mysql_data` volume.
 
-The Compose defaults are for local development only. Use separate, strong credentials and secret values for any internet-accessible deployment.
+Compose requires explicit database passwords and a JWT secret from `.env`; do not commit that file or reuse its values in production.
 
 ## Run locally without Docker
 
